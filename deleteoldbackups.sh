@@ -5,7 +5,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 
 log() {
-    echo -e "$(date -u +%Y-%m-%d-%H%M)" "$1" >> "deleted.log"
+    echo -e "$(date -u +%Y-%m-%d-%H%M)" "$1" >> "${LOGDIR}deleted.log"
     if [ "$2" != "noecho" ]; then
         echo -e "$1"
     fi
@@ -20,7 +20,7 @@ getFileDate() {
     FILEDAY=$(echo "$1" | cut -d - -f 4)
     FILETIME=$(echo "$1" | cut -d - -f 5)
 
-    if [ "${BACKUPHOSTNAME}" == "${FILEHOSTNAME}" ]; then
+    if [ "${SRVNAME}" == "${FILEHOSTNAME}" ]; then
         if [[ "${FILEYEAR}" && "${FILEMONTH}" && "${FILEDAY}" && "${FILETIME}" ]]; then
             #Approximate a 30-day month and 365-day year
             FILEDAYS=$(( $((10#${FILEYEAR}*365)) + $((10#${FILEMONTH}*30)) + $((10#${FILEDAY})) ))
@@ -131,7 +131,7 @@ getAbsoluteConfig() {
         exit
     fi
 
-    CONFIG=$( realpath "${CONFIG}" )
+    CONFIG=$( readlink -f "${CONFIG}" )
 }
 
 runLocally() {
@@ -146,7 +146,7 @@ runLocally() {
         # We're running locally - load the config
         getAbsoluteConfig
         source "${CONFIG}"
-        
+
         BACKUPDIR=${LOCALDIR}
         AGEDAILIES=${LOCALAGEDAILIES}
         AGEWEEKLIES=${LOCALAGEWEEKLIES}
@@ -162,7 +162,7 @@ runRemotely() {
     #Send the config and this script to the remote server to be run
     getAbsoluteConfig
     source "${CONFIG}"
-    
+
     echo "BACKUPHOSTNAME=$(hostname)" > /tmp/hostname
     cat "${CONFIG}" /tmp/hostname "${SCRIPTDIR}"/deleteoldbackups.sh | ssh -T -p "${REMOTEPORT}" "${REMOTEUSER}"@"${REMOTESERVER}" "/usr/bin/env bash"
     rm /tmp/hostname
