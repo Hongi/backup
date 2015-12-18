@@ -18,7 +18,6 @@ log() {
 
 
 ### LOAD IN CONFIG ###
-
 # Prepare "new" settings that might not be in backup.cfg
 SCPLIMIT=0
 
@@ -41,15 +40,14 @@ if [ ! -e "${CONFIG}" ]; then
 fi
 
 # Load in config
-CONFIG=$( realpath "${CONFIG}" )
+CONFIG=$( readlink -f "${CONFIG}" )
 source "${CONFIG}"
-
 ### END OF CONFIG ###
 
-### CHECKS ###
 
+### CHECKS ###
 # This section checks for all of the binaries used in the backup
-BINARIES=( cat cd command date dirname echo find openssl pwd realpath rm rsync scp ssh tar )
+BINARIES=( cat cd command date dirname echo find openssl pwd readlink rm rsync scp ssh tar )
 
 # Iterate over the list of binaries, and if one isn't found, abort
 for BINARY in "${BINARIES[@]}"; do
@@ -86,32 +84,40 @@ fi
 
 BACKUPDATE=$(date -u +%Y-%m-%d-%H%M)
 STARTTIME=$(date +%s)
-TARFILE="${LOCALDIR}""$(hostname)"-"${BACKUPDATE}".tgz
+TARFILE="${LOCALDIR}""${SRVNAME}"-"${BACKUPDATE}".tgz
 SQLFILE="${TEMPDIR}mysql_${BACKUPDATE}.sql"
 
 cd "${LOCALDIR}" || exit
-
 ### END OF CHECKS ###
 
 ### MYSQL BACKUP ###
-
 if [ ! "$(command -v mysqldump)" ]; then
     log "mysqldump not found, not backing up MySQL!"
-elif [ -z "$ROOTMYSQL" ]; then
+elif [ -z "$MYSQLPWD" ]; then
     log "MySQL root password not set, not backing up MySQL!"
 else
     log "Starting MySQL dump dated ${BACKUPDATE}"
-    mysqldump -u root -p"${ROOTMYSQL}" --all-databases > "${SQLFILE}"
+    mysqldump -u ${MYSQLUSER} -p"${MYSQLPWD}" --all-databases > "${SQLFILE}"
     log "MySQL dump complete"; log ""
 
     #Add MySQL backup to BACKUP list
     BACKUP=(${BACKUP[*]} ${SQLFILE})
 fi
-
 ### END OF MYSQL BACKUP ###
 
-### TAR BACKUP ###
+### ORACLE BACKUP ###
+ORACLEFILE="${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/${SCHEMANAME}_${BACKUPDATE}.dmp"
+if [ ! "$(command -v expdp)" ]; then
+        log "expdp not found, not backing up Oracle!"
+elif [ -z "$SCHEMANAME" ]; then
+        log "ORACLE SID set in backup.cfg, not backing up Oracle!"
+else
+        expdp ${SCHEMANAME}/${SCHEMAPWD}@${ORACLE_SID} dumpfile=${SCHEMANAME}_${BACKUPDATE}.dmp version=11.1
+        BACKUP=(${BACKUP[*]} $ORACLEFILE)
+fi
+### END OF ORACLE BACKUP ###
 
+### TAR BACKUP ###
 log "Starting tar backup dated ${BACKUPDATE}"
 # Prepare tar command
 TARCMD="-zcf ${TARFILE} ${BACKUP[*]}"
@@ -142,7 +148,7 @@ log "Tar backup complete. Filesize: ${BACKUPSIZE}"; log ""
 log "Tranferring tar backup to remote server"
 
 # Check if bandwidth limiting is enabled
-if [ "${SCPLIMIT}" -gt 0 ]; then 
+if [ "${SCPLIMIT}" -gt 0 ]; then
     scp -l "${SCPLIMIT}" -P "${REMOTEPORT}" "${TARFILE}".enc "${REMOTEUSER}"@"${REMOTESERVER}":"${REMOTEDIR}"
 else
     scp -P "${REMOTEPORT}" "${TARFILE}".enc "${REMOTEUSER}"@"${REMOTESERVER}":"${REMOTEDIR}"
@@ -150,26 +156,24 @@ fi
 log "File transfer completed"; log ""
 
 if [ "$(command -v mysqldump)" ]; then
-    if [ ! -z "${ROOTMYSQL}" ]; then
+    if [ ! -z "${MYSQLPWD}" ]; then
         log "Deleting temporary MySQL backup"; log ""
         rm "${SQLFILE}"
     fi
 fi
-
 ### END OF TAR BACKUP ###
 
-### RSYNC BACKUP ###
 
+### RSYNC BACKUP ###
 log "Starting rsync backups"
 for i in "${RSYNCDIR[@]}"; do
     rsync -aqz --no-links --progress --delete --relative -e"ssh -p ${REMOTEPORT}" "$i" "${REMOTEUSER}"@"${REMOTESERVER}":"${REMOTEDIR}"
 done
 log "rsync backups complete"; log ""
-
 ### END OF RSYNC BACKUP ###
 
-### BACKUP DELETION ##
 
+### BACKUP DELETION ##
 log "Checking for LOCAL backups to delete..."
 bash "${SCRIPTDIR}"/deleteoldbackups.sh --config "${CONFIG}"
 log ""
@@ -177,8 +181,8 @@ log ""
 log "Checking for REMOTE backups to delete..."
 bash "${SCRIPTDIR}"/deleteoldbackups.sh --config "${CONFIG}" --remote
 log ""
-
 ### END OF BACKUP DELETION ###
+
 
 ENDTIME=$(date +%s)
 DURATION=$((ENDTIME - STARTTIME))
