@@ -1,6 +1,6 @@
 #Backup Script
 
-A simple backup script utilising OpenSSL, tar and rsync, written in bash.
+A simple backup script utilising OpenSSL, tar and rsync, MySQL, Oracle written in bash.
 
 ##Script Features
 
