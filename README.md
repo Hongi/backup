@@ -2,6 +2,10 @@
 
 A simple backup script utilising OpenSSL, tar and rsync, MySQL, Oracle written in bash.
 
+##Fork Features
+* Oracle 12C (Maybe 11GR2) support
+* Centos 6+ support 
+
 ##Script Features
 
 * Incremental backup retention
