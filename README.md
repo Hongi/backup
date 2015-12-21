@@ -10,6 +10,7 @@ A simple backup script utilising OpenSSL, tar and rsync, MySQL, Oracle written i
 * Oracle's log are too verbose
 * Oracle's script must be optimized&cleaner
 * Error with "deleted.log" during remote cleaning, if log's directory is located inside local's directory
+* bug between SRVNAME and BACKUPHOSTNAME in deleteoldbackups.sh
 
 ##Script Features
 
