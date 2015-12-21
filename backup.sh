@@ -105,17 +105,21 @@ else
 fi
 ### END OF MYSQL BACKUP ###
 
+
 ### ORACLE BACKUP ###
 ORACLEFILE="${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/${SCHEMANAME}_${BACKUPDATE}.dmp"
 if [ ! "$(command -v expdp)" ]; then
-        log "expdp not found, not backing up Oracle!"
+    log "expdp not found, not backing up Oracle!"
 elif [ -z "$SCHEMANAME" ]; then
-        log "ORACLE SID set in backup.cfg, not backing up Oracle!"
+    log "ORACLE SID set in backup.cfg, not backing up Oracle!"
+elif [ ! -w "${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/" ]; then 
+    log "${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/ either doesn't exist or isn't writable"
 else
-        expdp ${SCHEMANAME}/${SCHEMAPWD}@${ORACLE_SID} dumpfile=${SCHEMANAME}_${BACKUPDATE}.dmp version=11.1
-        BACKUP=(${BACKUP[*]} $ORACLEFILE)
+    expdp ${SCHEMANAME}/${SCHEMAPWD}@${ORACLE_SID} dumpfile=${SCHEMANAME}_${BACKUPDATE}.dmp version=11.1
+    BACKUP=(${BACKUP[*]} $ORACLEFILE)
 fi
 ### END OF ORACLE BACKUP ###
+
 
 ### TAR BACKUP ###
 log "Starting tar backup dated ${BACKUPDATE}"
