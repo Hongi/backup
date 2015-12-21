@@ -97,7 +97,7 @@ elif [ -z "$MYSQLPWD" ]; then
     log "MySQL root password not set, not backing up MySQL!"
 else
     log "Starting MySQL dump dated ${BACKUPDATE}"
-    mysqldump -u ${MYSQLUSER} -p"${MYSQLPWD}" --all-databases > "${SQLFILE}"
+    mysqldump --events -u ${MYSQLUSER} -p"${MYSQLPWD}" --all-databases > "${SQLFILE}"
     log "MySQL dump complete"; log ""
 
     #Add MySQL backup to BACKUP list
