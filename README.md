@@ -4,7 +4,12 @@ A simple backup script utilising OpenSSL, tar and rsync, MySQL, Oracle written i
 
 ##Fork Features
 * Oracle 12C (Maybe 11GR2) support
-* Centos 6+ support 
+* CentOS 6+ support 
+
+###knowned issues
+* Oracle's log are too verbose
+* Oracle's script must be optimized&cleaner
+* Error with "deleted.log" during remote cleaning, if log's directory is located inside local's directory
 
 ##Script Features
 
