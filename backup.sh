@@ -116,7 +116,7 @@ elif [ ! -w "${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/" ]; then
     log "${ORACLE_BASE}/admin/${ORACLE_SID}/dpdump/ either doesn't exist or isn't writable"
 else
     expdp ${SCHEMANAME}/${SCHEMAPWD}@${ORACLE_SID} dumpfile=${SCHEMANAME}_${BACKUPDATE}.dmp version=11.1
-    BACKUP=(${BACKUP[*]} $ORACLEFILE)
+    BACKUP=(${BACKUP[*]} ${ORACLEFILE})
 fi
 ### END OF ORACLE BACKUP ###
 
@@ -159,10 +159,19 @@ else
 fi
 log "File transfer completed"; log ""
 
+# Delete SQLFILE
 if [ "$(command -v mysqldump)" ]; then
     if [ ! -z "${MYSQLPWD}" ]; then
         log "Deleting temporary MySQL backup"; log ""
         rm "${SQLFILE}"
+    fi
+fi
+
+# Delete ORACLEFILE
+if [ "$(command -v expdp)" ]; then
+    if [ ! -z "${SCHEMANAME}" ]; then
+        log "Deleting temporary Oracle backup"; log ""
+        rm "${ORACLEFILE}"
     fi
 fi
 ### END OF TAR BACKUP ###
